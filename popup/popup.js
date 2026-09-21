@@ -87,9 +87,9 @@ function graph(history) {
     first = Math.max(0, Math.min(...points.map((p) => p.ply)) - 2)
   const x = (ply) => left + ((ply - first) / (last - first)) * (right - left),
     y = (val) => (top + bottom) / 2 - ((val / bound) * (bottom - top)) / 2
-  c.font = '9px Segoe UI'
-  c.fillStyle = '#94a5af'
-  c.strokeStyle = '#33414b'
+  c.font = '9px Consolas'
+  c.fillStyle = '#706d66'
+  c.strokeStyle = '#c9c0af'
   c.lineWidth = 1
   for (const v of [-bound, 0, bound]) {
     c.beginPath()
@@ -103,7 +103,7 @@ function graph(history) {
     c.fillText(String(ply), x(ply) - 4, h - 6)
   }
   if (points.length) {
-    c.strokeStyle = '#8ee3c0'
+    c.strokeStyle = '#d6493d'
     c.lineWidth = 2
     c.beginPath()
     points.forEach((p, i) =>
@@ -113,14 +113,14 @@ function graph(history) {
     )
     c.stroke()
     for (const p of points) {
-      c.fillStyle = p.turn === 'X' ? '#8ee3c0' : '#e3bd83'
+      c.fillStyle = p.turn === 'X' ? '#d6493d' : '#395f78'
       c.beginPath()
       c.arc(x(p.ply), y(p.blackEval), 3, 0, Math.PI * 2)
       c.fill()
     }
   }
   $('chartNote').textContent = points.length
-    ? 'Eval quy về phía X: dương = X lợi thế. Màu ngọc = lượt X; vàng = lượt O. Mate hiển thị tại ±1000.'
+    ? 'Eval quy về phía X: dương = X lợi thế. Đỏ = lượt X; xanh = lượt O. Mate hiển thị tại ±1000.'
     : 'Chưa có dữ liệu. Chỉ ghi các position đã được phân tích.'
   canvas.setAttribute(
     'aria-label',
@@ -163,7 +163,7 @@ function render(state) {
       ? 'Phân tích đã tạm dừng.'
       : s
       ? '3 Neutral · 19 × 19 · chỉ hiển thị gợi ý.'
-      : 'Mở một bàn cờ VNCaro để bắt đầu.')
+      : 'Mở một bàn cờ Gomoku được hỗ trợ để bắt đầu.')
   $('depth').textContent = best?.depth
     ? `${best.depth}-${best.seldepth ?? '—'}`
     : '—'
@@ -206,6 +206,7 @@ async function init() {
   const param = new URLSearchParams(location.search).get('tab')
   if (param !== null) {
     tabId = Number(param)
+    document.documentElement.classList.add('detached-window')
     document.body.classList.add('detached')
     $('detach').hidden = true
   } else {
