@@ -1,41 +1,75 @@
-# Gomoku Neutral Assistant
+# Neutral Lab — Gomoku Neutral Assistant
 
-A Manifest V3 Chromium extension that detects the VNCaro 19×19 board, reads X/O/three Neutral cells, analyzes the position locally with the customized Rapfi WebAssembly engine, and draws ranked suggestions directly over the board. It never clicks or plays a move.
+Read-only, locally computed Rapfi analysis for VNCaro 19×19 boards with three permanent Neutral cells. Version 0.2.0 fixes position serialization and introduces persistent analysis sessions with a live Analyze / Settings interface. It never clicks, submits a move, or opens a game-server socket.
 
-## Current support
+## Install / upgrade
 
-- VNCaro DOM adapter (`#board`, `c{row}_{col}`, `.PX`, `.PO`, `.forb`).
-- Three permanent Neutral cells serialized as Rapfi wall value `3`.
-- Single-thread SIMD Rapfi WebAssembly, fully packaged and offline.
-- One to five ranked suggestions.
-- Configurable time, opacity, marker size, and labels.
-- Competitive-game guard enabled by default.
+1. Back up your current checkout or create a branch (`git switch -c feature/analysis-v020`).
+2. Extract the **source** ZIP into the repository folder (the one containing `manifest.json`). Do not replace or delete your existing `.git` directory. The **runtime** ZIP is for installation only.
+3. Open `chrome://extensions`, enable Developer mode and load this directory, or click Reload on the existing unpacked extension. If the old extension was loaded from `dist`, load the updated root instead; old `dist` is not updated automatically.
+4. Reload the VNCaro page. Extension reloads do not replace content scripts already injected into open tabs.
+5. Click the extension icon. Use the upper-right arrow to open a persistent analysis window that stays visible beside the board.
 
-## Install for development
+Node.js is only needed for development tests / packaging, not to run the extension.
 
-1. Run `npm test` and `npm run check`.
-2. Open `chrome://extensions`.
-3. Enable **Developer mode**.
-4. Choose **Load unpacked** and select this repository directory.
-5. Open VNCaro and enter or watch a game. The first engine load may take several seconds because the packaged model is about 40 MB.
+## What changed
 
-If Chrome reports that it cannot load a file from the repository, run `npm run package`, unzip the generated archive, and load the extracted directory.
+- **Correct Gomocup position serialization.** Version 0.1 grouped all X stones before all O stones. Rapfi interprets a sequence, inserting PASS moves between repeated colors. On odd-ply positions this could leave the engine analyzing Black when White was actually to move. Version 0.2 alternates colors, maps SELF/OPPONENT relative to the side to move, and preserves observed history.
+- Persistent WASM instance and model; `START` only for a new/reset game; hash/model/range configuration only when relevant settings change.
+- Cached DOM cell records. Mutation batches update affected cells. VNCaro redraws all cells after a move, so reconciliation may still inspect all 361 cells, but unchanged positions do not trigger searches.
+- Live depth, selective depth, evaluation, nodes, speed, elapsed time and complete ranked MultiPV lines.
+- Only the latest requested board is pending. Results for superseded boards never get painted on the current board.
+- Board markers are always ranked: star = best, 2/3/etc. = alternatives. These are alternative first moves, not successive moves in one line.
+- Fast / Slow / Analysis / Custom modes; handicap, three bundled models, candidate range, 32–256 MB hash, marker opacity and scale.
+- Removed competitive-game toggle and rank visibility toggle.
+- Evaluation history (normalized to Black/X), copyable position, pause/resume and a detached window.
 
-## Architecture
+## Important implementation limits
 
-- `content/vncaro.js`: board detection, synchronization, and read-only overlay.
-- `background/service-worker.js`: request routing and offscreen-host lifecycle.
-- `offscreen/`: persistent extension document that owns the engine worker.
-- `engine/`: Rapfi worker plus locally packaged JS/WASM/data.
-- `shared/core.js`: board normalization, engine protocol, output parsing, and numbering.
-- `popup/`: user settings.
+The shipped binary is **single-thread SIMD** and runs synchronously inside a Web Worker. An ordinary `postMessage('YXSTOP')` cannot interrupt a busy synchronous search. This release does not claim multi-thread search or true concurrent pondering.
 
-The VNCaro adapter reads the rendered board instead of opening another Socket.IO connection. It debounces the site's full-board rerender and converts page `(row, col)` to engine `(x=col, y=row)`.
+To retain the worker/model/hash while accepting new positions, searches run in bounded **750 ms work slices**. Between slices, the worker uses `TAKEBACK` to undo Rapfi's internally applied hypothetical best move, then resumes from the last reported depth using `INFO START_DEPTH`. Analysis has **no overall time budget**, but stops on a reported mate, no legal candidates, depth 100, manual pause or a replaced position. These are repeated searches reusing the transposition table, not a preserved C++ search call stack. Slices have restart overhead; strength parity with native or multi-thread Rapfi has not been benchmarked. The native time limit is approximate, so cancellation can take longer than 750 ms.
 
-## Educational and anti-engine work
+On a changed position, the worker sends one cached `YXBOARD`, just as Gomoku Calculator does. It does not rebuild the board for every slice. The existing binary has no silent incremental-play command; a genuine engine-side move/undo protocol would require another engine build. Board serialization is not model reloading or hash clearing.
 
-The observer is intentionally separate from the analyzer. A future anti-engine module can reuse normalized snapshots and timestamps to compare played moves with engine rankings, measure agreement over many moves, and flag statistical patterns for human review. A single matching move is not evidence of engine use.
+Fast mode uses up to 7 seconds per position and a 3-minute extension-compute budget per game session; Slow uses 40 seconds and 15 minutes. These correspond to the calculator's preset constants, but the extension budgets **its own analysis time**, not either player's live clock. Custom offers time/depth/node limits. More MultiPV lines distribute search work across more alternatives. Handicap 0 means full strength.
 
-## License and third-party software
+Sessions live in the offscreen document and survive popup closure and service-worker suspension. Browser/extension restart loses engine hash and in-memory sessions. Only the most recently requested board is actively analyzed; opening another board pauses the previous session.
 
-Project code is distributed under GPL-3.0-only. Rapfi is GPLv3 software; its license, authors, and upstream readme are preserved under `third_party/rapfi/`. The packaged engine assets originate from the customized Rapfi/Gomoku Calculator build used by this project.
+If attached midgame, the board does not provide a complete move history. The extension exports an explicitly labeled **snapshot JSON** rather than fabricating a replay string. When observed from the start, Position uses `n:g12,n14,j7|...` compatible with Gomoku Calculator. Letters use A–S, rows count upward from the bottom; numeric VNCaro labels use stride 20. Neutral walls and X's first/second-move root restrictions are enforced. Historical chart points are only from actually analyzed positions; no backfilled or invented scores.
+
+## Development
+
+```sh
+npm test
+npm run test:engine
+npm run check
+npm run package
+node tools/package.cjs --source
+```
+
+No production npm dependencies. Packaging uses PowerShell on Windows and `zip` on Linux/macOS. It refuses to overwrite an existing same-version ZIP. The old v0.1 files remain unchanged.
+
+Optional Chromium integration test:
+
+```sh
+npm install --no-save playwright
+npx playwright install chromium
+npm run test:browser
+```
+
+This launches the actual unpacked extension against a locally supplied VNCaro-shaped page. It does not contact or play on a live game server. Unit and real-WASM tests were executed for this release. Chromium integration / visual QA could not be executed in the authoring environment because the browser binary download was unavailable; run this test and verify the layout locally before treating the release as production-ready.
+
+## Structure
+
+- `shared/core.js`: normalization, observed history, Gomocup serialization, opening legality, MultiPV parsing.
+- `content/vncaro.js`: cached DOM observer and non-interactive board markers.
+- `background/service-worker.js`: browser routing and offscreen lifecycle.
+- `offscreen/offscreen.js`: per-tab sessions, latest-only scheduling, progress/history.
+- `engine/rapfi.worker.js`: persistent WASM, board/config reuse, bounded search, internal takeback.
+- `popup/`: Analyze / Settings and detached window.
+- `tests/`: unit, host scheduling, real WASM and worker regression tests.
+
+## License
+
+GPL-3.0-only; preserve `LICENSE` and `third_party/rapfi/`. Engine assets are unchanged from the previously packaged customized Rapfi build. Engine source: https://github.com/imnwngr/rapfi ; calculator: https://github.com/imnwngr/gomoku-calculator . Do not assume current upstream HEAD exactly reproduces these binaries without checking the original build revision. Do not represent a source ZIP of this extension as containing the full C++ engine source.

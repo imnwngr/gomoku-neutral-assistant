@@ -1,53 +1,46 @@
-(function () {
+;(function () {
   'use strict'
-
-  let settings = GNCore.normalizeSettings()
-  let board = null
-  let boardObserver = null
-  let pageObserver = null
-  let resizeObserver = null
-  let overlay = null
-  let scanTimer = null
-  let latestKey = null
-  let latestRequestId = 0
-  let latestSuggestions = []
-  let latestSnapshot = null
-
-  async function loadSettings() {
-    const stored = await chrome.storage.sync.get(GNCore.DEFAULT_SETTINGS)
-    settings = GNCore.normalizeSettings(stored)
-  }
-
-  function collectCellRecords(boardElement) {
-    return Array.from(boardElement.querySelectorAll(':scope > .cell')).map((cell) => ({
-      id: cell.id,
-      classes: Array.from(cell.classList),
-      piece: cell.querySelector('.PX[aria-label="X"]') ? 'X' : cell.querySelector('.PO[aria-label="O"]') ? 'O' : null,
-    }))
-  }
-
-  function detectContext() {
-    const roomText = (document.getElementById('game-room-lbl') || {}).textContent || ''
-    const spectatorText = (document.getElementById('spec-bar-txt') || {}).textContent || ''
-    const result = document.getElementById('result-modal')
-    return {
-      gameType: roomText.includes('🏆') ? 'ranked' : roomText.includes('🏟️') ? 'arena' : 'casual',
-      spectator: /đang xem/i.test(spectatorText),
-      ended: !!(result && getComputedStyle(result).display !== 'none'),
+  let settings = GNCore.normalizeSettings(),
+    board = null,
+    observer = null,
+    resize = null,
+    overlay = null,
+    timer = null,
+    key = null,
+    snapshot = null,
+    suggestions = [],
+    force = false,
+    full = true,
+    stopped = false
+  const records = new Map(),
+    dirty = new Set()
+  const readCell = (cell) => ({
+    id: cell.id,
+    classes: Array.from(cell.classList),
+    piece: cell.querySelector('.PX[aria-label="X"]')
+      ? 'X'
+      : cell.querySelector('.PO[aria-label="O"]')
+      ? 'O'
+      : null,
+  })
+  function ensureOverlay() {
+    const inner = document.getElementById('binner') || board?.parentElement
+    if (!inner) return
+    if (getComputedStyle(inner).position === 'static')
+      inner.style.position = 'relative'
+    if (!overlay?.isConnected || overlay.parentElement !== inner) {
+      overlay?.remove()
+      overlay = document.createElement('div')
+      overlay.id = 'gna-overlay-root'
+      inner.appendChild(overlay)
     }
   }
-
-  function gameTabIsActive() {
-    const tab = document.getElementById('tp-game')
-    return !!(tab && tab.classList.contains('active'))
-  }
-
-  function setStatus(text) {
+  function status(text) {
     ensureOverlay()
     if (!overlay) return
     let node = overlay.querySelector('.gna-status')
     if (!text) {
-      if (node) node.remove()
+      node?.remove()
       return
     }
     if (!node) {
@@ -57,170 +50,203 @@
     }
     node.textContent = text
   }
-
-  function ensureOverlay() {
-    if (!board || !board.isConnected) return null
-    const inner = document.getElementById('binner') || board.parentElement
-    if (!inner) return null
-    if (getComputedStyle(inner).position === 'static') inner.style.position = 'relative'
-    if (!overlay || !overlay.isConnected || overlay.parentElement !== inner) {
-      if (overlay) overlay.remove()
-      overlay = document.createElement('div')
-      overlay.id = 'gna-overlay-root'
-      inner.appendChild(overlay)
-    }
-    return overlay
-  }
-
-  function clearMarkers() {
-    if (!overlay) return
-    overlay.querySelectorAll('.gna-marker').forEach((node) => node.remove())
-    latestSuggestions = []
-  }
-
-  function renderSuggestions(suggestions, snapshot) {
+  function render() {
     ensureOverlay()
-    if (!overlay || !board) return
-    overlay.querySelectorAll('.gna-marker').forEach((node) => node.remove())
-    latestSuggestions = suggestions || []
-    latestSnapshot = snapshot
-
-    const containerRect = overlay.getBoundingClientRect()
-    for (const suggestion of latestSuggestions) {
-      const row = suggestion.y
-      const col = suggestion.x
-      const cell = document.getElementById('c' + row + '_' + col)
-      if (!cell || cell.classList.contains('placed') || cell.classList.contains('forb') || cell.classList.contains('hidden')) continue
-      const rect = cell.getBoundingClientRect()
-      const marker = document.createElement('div')
-      marker.className = 'gna-marker ' + (snapshot.turn === 'X' ? 'gna-x' : 'gna-o')
-      marker.dataset.rank = String(suggestion.rank)
-      marker.style.left = rect.left - containerRect.left + rect.width / 2 + 'px'
-      marker.style.top = rect.top - containerRect.top + rect.height / 2 + 'px'
-      const size = Math.min(rect.width, rect.height) * settings.markerScale / 100
-      marker.style.width = size + 'px'
-      marker.style.height = size + 'px'
-      marker.style.fontSize = Math.max(9, size * 0.48) + 'px'
-      marker.style.opacity = String(settings.markerOpacity / 100)
-      marker.textContent = settings.showRank ? String(suggestion.rank) : ''
-      marker.title = 'Gợi ý ' + suggestion.rank + ' · ô ' + GNCore.displayLabel(row, col)
-      overlay.appendChild(marker)
+    if (!overlay) return
+    overlay.querySelectorAll('.gna-marker').forEach((n) => n.remove())
+    if (!snapshot) return
+    const origin = overlay.getBoundingClientRect()
+    for (const p of suggestions) {
+      if (!GNCore.isLegal(snapshot, p)) continue
+      const cell = document.getElementById(`c${p.y}_${p.x}`)
+      if (!cell || cell.classList.contains('hidden')) continue
+      const r = cell.getBoundingClientRect(),
+        n = document.createElement('div'),
+        size = (Math.min(r.width, r.height) * settings.markerScale) / 100
+      n.className = 'gna-marker ' + (snapshot.turn === 'X' ? 'gna-x' : 'gna-o')
+      n.dataset.rank = String(p.rank)
+      n.style.left = r.left - origin.left + r.width / 2 + 'px'
+      n.style.top = r.top - origin.top + r.height / 2 + 'px'
+      n.style.width = n.style.height = size + 'px'
+      n.style.fontSize = Math.max(9, size * 0.44) + 'px'
+      n.style.opacity = String(settings.markerOpacity / 100)
+      n.textContent = p.rank === 1 ? '★' : String(p.rank)
+      n.title = `${
+        p.rank === 1 ? 'Best line' : 'PV ' + p.rank
+      } · ${GNCore.coord(p)} · ô ${GNCore.displayLabel(p.y, p.x)} · Eval ${
+        p.eval ?? '—'
+      }`
+      overlay.appendChild(n)
     }
   }
-
-  function scheduleScan(delay) {
-    clearTimeout(scanTimer)
-    scanTimer = setTimeout(scanBoard, delay == null ? 90 : delay)
+  function stop(text) {
+    key = null
+    suggestions = []
+    render()
+    status(text)
+    if (!stopped) {
+      stopped = true
+      chrome.runtime.sendMessage({ type: 'GNA_STOP' }).catch(() => {})
+    }
   }
-
-  async function scanBoard() {
-    findAndAttachBoard()
-    if (!board || !gameTabIsActive()) {
-      clearMarkers()
-      setStatus('')
-      latestKey = null
+  function schedule() {
+    clearTimeout(timer)
+    timer = setTimeout(scan, 70)
+  }
+  function attach() {
+    const next = document.getElementById('board')
+    if (next === board) return
+    observer?.disconnect()
+    resize?.disconnect()
+    board = next
+    records.clear()
+    dirty.clear()
+    full = true
+    key = null
+    suggestions = []
+    if (!board) return
+    observer = new MutationObserver((mutations) => {
+      for (const m of mutations) {
+        if (m.target === board && m.type === 'childList') {
+          full = true
+          continue
+        }
+        const el = m.target.nodeType === 1 ? m.target : m.target.parentElement,
+          cell = el?.closest('.cell')
+        if (cell && board.contains(cell)) dirty.add(cell)
+      }
+      if (full || dirty.size) schedule()
+    })
+    observer.observe(board, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['class', 'aria-label'],
+    })
+    resize = new ResizeObserver(render)
+    resize.observe(board)
+    ensureOverlay()
+  }
+  async function scan() {
+    attach()
+    if (
+      !board ||
+      !document.getElementById('tp-game')?.classList.contains('active')
+    )
+      return stop('')
+    if (!settings.enabled) return stop('Phân tích đang tắt')
+    if (full) {
+      records.clear()
+      board
+        .querySelectorAll(':scope > .cell')
+        .forEach((c) => records.set(c.id, readCell(c)))
+      full = false
+    } else
+      for (const c of dirty) if (c.isConnected) records.set(c.id, readCell(c))
+    dirty.clear()
+    const modal = document.getElementById('result-modal')
+    const next = GNCore.recordsToSnapshot([...records.values()], {
+      gameId: (
+        document.getElementById('game-room-lbl')?.textContent || ''
+      ).trim(),
+      ended: !!modal && getComputedStyle(modal).display !== 'none',
+    })
+    if (!next.valid)
+      return stop(
+        next.reason === 'neutral-count'
+          ? 'Đang chờ đủ 3 Neutral'
+          : 'Đang đồng bộ bàn cờ'
+      )
+    snapshot = next
+    if (next.ended) return stop('Ván đã kết thúc')
+    const newKey = GNCore.snapshotKey(next)
+    if (newKey === key && !force) {
+      render()
       return
     }
-    if (!settings.enabled) {
-      clearMarkers()
-      setStatus('Phân tích đang tắt')
-      return
-    }
-
-    const context = detectContext()
-    const snapshot = GNCore.recordsToSnapshot(collectCellRecords(board), context)
-    if (!snapshot.valid) {
-      clearMarkers()
-      setStatus(snapshot.reason === 'neutral-count' ? 'Đang chờ đủ 3 Neutral' : 'Đang đồng bộ bàn cờ')
-      latestKey = null
-      return
-    }
-    if (snapshot.ended) {
-      clearMarkers()
-      setStatus('Ván đã kết thúc')
-      return
-    }
-    if (snapshot.gameType === 'ranked' && !snapshot.spectator && !settings.allowCompetitive) {
-      clearMarkers()
-      setStatus('Tắt trong ván xếp hạng')
-      latestKey = null
-      return
-    }
-
-    const key = GNCore.snapshotKey(snapshot)
-    if (key === latestKey) {
-      if (latestSuggestions.length) renderSuggestions(latestSuggestions, latestSnapshot || snapshot)
-      return
-    }
-
-    latestKey = key
-    clearMarkers()
-    setStatus('Rapfi đang phân tích…')
-    const requestId = ++latestRequestId
-
+    key = newKey
+    stopped = false
+    suggestions = []
+    render()
+    status('Đang phân tích…')
+    const resume = force
+    force = false
     try {
       const result = await chrome.runtime.sendMessage({
-        type: 'GNA_ANALYZE',
-        requestId,
-        snapshot,
-        settings,
+        type: 'GNA_SUBMIT',
+        snapshot: next,
+        force: resume,
       })
-      if (requestId !== latestRequestId || key !== latestKey) return
-      if (!result || !result.ok) throw new Error((result && result.error) || 'Không nhận được kết quả')
-      renderSuggestions(result.suggestions, snapshot)
-      setStatus(result.suggestions.length ? '' : 'Rapfi không trả về nước hợp lệ')
-    } catch (error) {
-      if (requestId !== latestRequestId) return
-      clearMarkers()
-      setStatus('Lỗi engine: ' + (error && error.message ? error.message : String(error)))
+      if (key !== newKey) return
+      if (!result?.ok)
+        throw new Error(result?.error || 'Không kết nối được engine')
+      update(result.state)
+    } catch (e) {
+      if (key === newKey) status('Lỗi: ' + e.message)
     }
   }
-
-  function findAndAttachBoard() {
-    const candidate = document.getElementById('board')
-    if (candidate === board) return
-    if (boardObserver) boardObserver.disconnect()
-    if (resizeObserver) resizeObserver.disconnect()
-    board = candidate
-    latestKey = null
-    if (!board) return
-
-    boardObserver = new MutationObserver(() => scheduleScan(90))
-    boardObserver.observe(board, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style'] })
-    resizeObserver = new ResizeObserver(() => {
-      if (latestSuggestions.length && latestSnapshot) renderSuggestions(latestSuggestions, latestSnapshot)
-    })
-    resizeObserver.observe(board)
-    ensureOverlay()
+  function update(state) {
+    if (!settings.enabled || !key || state?.key !== key) return
+    suggestions = state.suggestions || []
+    render()
+    const d = suggestions[0]?.depth
+    status(
+      state.status === 'thinking'
+        ? `Đang tính${d ? ' · depth ' + d : ''}`
+        : state.status === 'error'
+        ? 'Lỗi: ' + state.error
+        : state.status === 'paused'
+        ? 'Đã tạm dừng'
+        : state.status === 'loading'
+        ? 'Đang tải engine…'
+        : ''
+    )
   }
-
-  async function initialize() {
-    await loadSettings()
-    findAndAttachBoard()
-    pageObserver = new MutationObserver((mutations) => {
-      const relevant = mutations.some((mutation) => {
-        if (overlay && (mutation.target === overlay || overlay.contains(mutation.target))) return false
-        if (board && (mutation.target === board || board.contains(mutation.target))) return false
-        return true
-      })
-      if (!relevant) return
-      findAndAttachBoard()
-      scheduleScan(100)
+  chrome.runtime.onMessage.addListener((m, sender, reply) => {
+    if (m.type === 'GNA_UPDATE') update(m.state)
+    if (m.type === 'GNA_RESCAN') {
+      force = true
+      full = true
+      scan()
+      reply({ ok: true })
+    }
+  })
+  async function init() {
+    settings = GNCore.normalizeSettings(await chrome.storage.sync.get(null))
+    attach()
+    new MutationObserver((ms) => {
+      if (
+        ms.some(
+          (m) =>
+            !(
+              overlay &&
+              (m.target === overlay || overlay.contains(m.target))
+            ) && !(board && (m.target === board || board.contains(m.target)))
+        )
+      )
+        schedule()
+    }).observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['class', 'style'],
     })
-    pageObserver.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] })
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area !== 'sync') return
-      const next = Object.assign({}, settings)
-      for (const key of Object.keys(changes)) next[key] = changes[key].newValue
+      const next = { ...settings }
+      for (const k of Object.keys(changes)) next[k] = changes[k].newValue
       settings = GNCore.normalizeSettings(next)
-      latestKey = null
-      scheduleScan(0)
+      if (
+        Object.keys(changes).some(
+          (k) => k !== 'markerOpacity' && k !== 'markerScale'
+        )
+      )
+        force = true
+      schedule()
     })
-    window.addEventListener('scroll', () => {
-      if (latestSuggestions.length && latestSnapshot) renderSuggestions(latestSuggestions, latestSnapshot)
-    }, { passive: true })
-    scheduleScan(0)
+    window.addEventListener('scroll', render, { passive: true })
+    window.addEventListener('resize', render, { passive: true })
+    scan()
   }
-
-  initialize().catch((error) => console.error('[Gomoku Neutral Assistant]', error))
+  init().catch((e) => console.error('[GNA]', e))
 })()
