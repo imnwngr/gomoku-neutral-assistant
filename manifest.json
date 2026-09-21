@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Gomoku Neutral Assistant",
   "description": "Local Rapfi analysis overlay for supported Neutral Gomoku boards.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "minimum_chrome_version": "116",
   "permissions": ["storage", "offscreen"],
   "host_permissions": ["https://vncaro.com/*", "https://*.vncaro.com/*"],

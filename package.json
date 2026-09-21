@@ -1,12 +1,14 @@
 {
   "name": "gomoku-neutral-assistant",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Read-only local Rapfi analysis overlay for Neutral Gomoku websites.",
   "license": "GPL-3.0-only",
   "scripts": {
     "test": "node --test tests/*.test.js",
     "check": "node tools/check-extension.js",
-    "package": "bash tools/package.sh"
+    "test:engine": "node --test tests/engine.integration.cjs tests/worker.integration.cjs",
+    "test:browser": "node tools/test-browser.cjs",
+    "package": "node tools/package.cjs"
   }
 }

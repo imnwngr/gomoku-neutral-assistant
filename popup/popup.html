@@ -1,26 +1,229 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="vi">
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Gomoku Neutral Assistant</title>
-    <link rel="stylesheet" href="popup.css">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Neutral Lab · Rapfi</title>
+    <link rel="stylesheet" href="popup.css" />
   </head>
   <body>
     <header>
-      <h1>Gomoku Neutral</h1>
-      <p>Rapfi chạy cục bộ · chỉ hiển thị</p>
+      <div class="brand">
+        <span class="logo">×<span>○</span></span>
+        <div>
+          <h1>NEUTRAL <em>LAB</em></h1>
+          <p>LOCAL ANALYSIS / RAPFI</p>
+        </div>
+      </div>
+      <button id="detach" class="icon" title="Mở cửa sổ phân tích riêng">
+        ↗
+      </button>
     </header>
+    <nav aria-label="Navigation">
+      <button id="analyzeTab" class="selected" aria-selected="true">
+        Analyze <span class="live-dot"></span></button
+      ><button id="settingsTab" aria-selected="false">Settings</button
+      ><span class="version">v0.2.0</span>
+    </nav>
     <main>
-      <label class="toggle"><span>Bật phân tích</span><input id="enabled" type="checkbox"></label>
-      <label>Số nước gợi ý<select id="nbest"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
-      <label>Thời gian suy nghĩ<select id="thinkTime"><option value="500">0,5 giây</option><option value="1000">1 giây</option><option value="1500">1,5 giây</option><option value="2000">2 giây</option><option value="3000">3 giây</option><option value="5000">5 giây</option></select></label>
-      <label>Độ đậm dấu gợi ý <output id="markerOpacityOut"></output><input id="markerOpacity" type="range" min="20" max="100" step="5"></label>
-      <label>Kích thước dấu <output id="markerScaleOut"></output><input id="markerScale" type="range" min="35" max="95" step="5"></label>
-      <label class="toggle"><span>Hiện thứ hạng 1–5</span><input id="showRank" type="checkbox"></label>
-      <label class="toggle warning"><span>Cho phép trong ván xếp hạng</span><input id="allowCompetitive" type="checkbox"></label>
-      <p class="note">Chỉ bật ở nơi được phép. Extension không thực hiện nước đi.</p>
-      <div id="status">Đang kiểm tra engine…</div>
+      <section id="analyzePanel">
+        <div class="session">
+          <div>
+            <span class="eyebrow">BOARD SESSION</span>
+            <h2 id="boardTitle">Chờ bàn cờ</h2>
+          </div>
+          <span id="stateBadge" class="badge">WAITING</span>
+        </div>
+        <p id="status" role="status">Mở một bàn cờ VNCaro để bắt đầu.</p>
+        <div class="metrics">
+          <div><span>DEPTH</span><strong id="depth">—</strong></div>
+          <div><span>EVAL</span><strong id="eval">—</strong></div>
+          <div><span>SPEED</span><strong id="speed">—</strong></div>
+          <div><span>NODES</span><strong id="nodes">—</strong></div>
+          <div><span>TIME</span><strong id="time">—</strong></div>
+        </div>
+        <div class="section-head">
+          <h3>Principal variations</h3>
+          <span id="pvLabel">BEST FIRST</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Depth</th>
+                <th>Eval</th>
+                <th>Bestline</th>
+              </tr>
+            </thead>
+            <tbody id="pvRows">
+              <tr>
+                <td colspan="4" class="empty">
+                  Kết quả sẽ cập nhật trong khi engine đang tính.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="hint">
+          ★ là nước mạnh nhất. 2, 3… là các phương án khác, không phải các nước
+          liên tiếp. Eval tính theo bên đang đến lượt.
+        </p>
+        <div class="section-head">
+          <h3>Evaluation history</h3>
+          <span class="legend"><i></i> X / BLACK</span>
+        </div>
+        <div class="chart-wrap">
+          <canvas
+            id="evalChart"
+            height="150"
+            role="img"
+            aria-label="Biểu đồ đánh giá thế cờ theo số nước đã đi"
+          ></canvas>
+          <p id="chartNote" class="hint">
+            Chưa có dữ liệu. Không tự điền đánh giá cho các nước chưa phân tích.
+          </p>
+        </div>
+        <div class="section-head">
+          <h3>Position</h3>
+          <button id="copy" class="text-button">Copy</button>
+        </div>
+        <textarea
+          id="position"
+          rows="2"
+          readonly
+          aria-label="Current position"
+          placeholder="Position sẽ xuất hiện tại đây"
+        ></textarea>
+        <p id="positionNote" class="hint">
+          Lưu position và các nước đi quan sát được trong phiên.
+        </p>
+        <footer>
+          <button id="stop" class="secondary">Tạm dừng</button
+          ><button id="resume" class="primary">
+            Phân tích lại <span>→</span>
+          </button>
+        </footer>
+        <p class="footnote">SIMD · 1 thread · local only · không tự đánh</p>
+      </section>
+      <section id="settingsPanel" hidden>
+        <div class="session">
+          <div>
+            <span class="eyebrow">ENGINE CONTROL</span>
+            <h2>Thinking & display</h2>
+          </div>
+          <label class="switch" title="Bật phân tích"
+            ><input id="enabled" type="checkbox" /><span></span
+          ></label>
+        </div>
+        <h3 class="setting-heading">Thinking Time</h3>
+        <div class="mode-grid">
+          <label
+            ><input type="radio" name="timeMode" value="fast" /><span
+              ><b>Fast game</b><small>~3 min / 7s mỗi position</small></span
+            ></label
+          >
+          <label
+            ><input type="radio" name="timeMode" value="slow" /><span
+              ><b>Slow game</b><small>~15 min / 40s mỗi position</small></span
+            ></label
+          >
+          <label
+            ><input type="radio" name="timeMode" value="analysis" /><span
+              ><b>Analysis <i>∞</i></b
+              ><small>Không giới hạn tổng thời gian</small></span
+            ></label
+          >
+          <label
+            ><input type="radio" name="timeMode" value="custom" /><span
+              ><b>Custom</b><small>Giới hạn tùy chỉnh</small></span
+            ></label
+          >
+        </div>
+        <div id="customSettings" class="settings-list" hidden>
+          <label
+            ><span>Time / position (giây)</span
+            ><input
+              id="customSeconds"
+              type="number"
+              min="0.1"
+              max="3600"
+              step="0.1"
+          /></label>
+          <label
+            ><span>Max depth</span
+            ><input id="maxDepth" type="number" min="1" max="100"
+          /></label>
+          <label
+            ><span>Max nodes <small>0 = không giới hạn</small></span
+            ><input id="maxNodes" type="number" min="0" max="1000000000000"
+          /></label>
+        </div>
+        <h3 class="setting-heading">Thinking</h3>
+        <div class="settings-list">
+          <label
+            ><span>Multi PV <small>Số phương án, xếp mạnh → yếu</small></span
+            ><input id="nbest" type="number" min="1" max="10"
+          /></label>
+          <label
+            ><span>Handicap <small>0 = toàn bộ sức mạnh</small></span
+            ><input id="handicap" type="number" min="0" max="100"
+          /></label>
+          <label
+            ><span>Engine Model</span
+            ><select id="model">
+              <option value="config.toml">Mix9svq NNUE</option>
+              <option value="classical220723.toml">Classical 2022</option>
+              <option value="classical210901.toml">Classical 2021</option>
+            </select></label
+          >
+          <label
+            ><span>Candidate Range</span
+            ><select id="candRange">
+              <option value="0">Square 2</option>
+              <option value="1">Square 2 + Line 3</option>
+              <option value="2">Square 3</option>
+              <option value="3">Square 3 + Line 4 · Recommended</option>
+              <option value="4">Square 4</option>
+              <option value="5">Full board</option>
+            </select></label
+          >
+          <label
+            ><span>Transposition Table</span
+            ><select id="hashSize">
+              <option value="32">32 MB</option>
+              <option value="64">64 MB</option>
+              <option value="128">128 MB</option>
+              <option value="256">256 MB</option>
+            </select></label
+          >
+        </div>
+        <h3 class="setting-heading">Board overlay</h3>
+        <div class="settings-list">
+          <label
+            ><span>Độ đậm <output id="opacityOut"></output></span
+            ><input id="markerOpacity" type="range" min="0" max="100"
+          /></label>
+          <label
+            ><span>Kích thước <output id="scaleOut"></output></span
+            ><input id="markerScale" type="range" min="35" max="95"
+          /></label>
+        </div>
+        <p class="hint">
+          Analysis chạy nối tiếp, giữ bảng nhớ tìm kiếm. Dừng khi bạn bấm tạm
+          dừng, đổi position, tìm thấy kết quả quyết định hoặc đạt depth 100.
+          Bản này vẫn dùng WASM một luồng; đổi position có thể chờ hết phiên
+          tính ngắn hiện tại.
+        </p>
+        <p class="hint">
+          Fast/Slow dùng ngân sách tính của extension trong phiên, không đọc
+          đồng hồ trận đấu. Đổi model, bảng nhớ hoặc candidate range sẽ cấu hình
+          lại engine.
+        </p>
+        <p id="saved" class="save-status" role="status">
+          Thiết lập tự động lưu
+        </p>
+      </section>
     </main>
     <script src="../shared/core.js"></script>
     <script src="popup.js"></script>

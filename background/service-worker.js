@@ -1,76 +1,97 @@
 'use strict'
-
-const DEFAULT_SETTINGS = {
-  enabled: true,
-  nbest: 3,
-  thinkTime: 1500,
-  markerOpacity: 88,
-  markerScale: 68,
-  showRank: true,
-  allowCompetitive: false,
+importScripts('../shared/core.js')
+let creating = null
+async function exists() {
+  return (
+    (await chrome.runtime.getContexts({ contextTypes: ['OFFSCREEN_DOCUMENT'] }))
+      .length > 0
+  )
 }
-
+async function ensure() {
+  if (await exists()) return
+  if (!creating)
+    creating = chrome.offscreen
+      .createDocument({
+        url: 'offscreen/offscreen.html',
+        reasons: ['WORKERS'],
+        justification: 'Persistent local Rapfi analysis worker.',
+      })
+      .finally(() => {
+        creating = null
+      })
+  await creating
+}
 chrome.runtime.onInstalled.addListener(async () => {
-  const stored = await chrome.storage.sync.get(DEFAULT_SETTINGS)
-  await chrome.storage.sync.set(stored)
+  const old = await chrome.storage.sync.get(null)
+  await chrome.storage.sync.set(GNCore.normalizeSettings(old))
+  await chrome.storage.sync.remove([
+    'allowCompetitive',
+    'showRank',
+    'thinkTime',
+  ])
 })
-
-let creatingOffscreen = null
-
-async function hasOffscreenDocument() {
-  if (chrome.runtime.getContexts) {
-    const contexts = await chrome.runtime.getContexts({ contextTypes: ['OFFSCREEN_DOCUMENT'] })
-    return contexts.length > 0
+chrome.runtime.onMessage.addListener((m, sender, reply) => {
+  if (!m || m.target === 'offscreen') return false
+  if (m.type === 'GNA_UPDATE') {
+    // Only our offscreen document can publish engine output.
+    if (sender.url !== chrome.runtime.getURL('offscreen/offscreen.html'))
+      return false
+    chrome.tabs.sendMessage(m.tabId, m).catch(() => {})
+    return false
   }
-  return false
-}
-
-async function ensureOffscreenDocument() {
-  if (await hasOffscreenDocument()) return
-  if (!creatingOffscreen) {
-    creatingOffscreen = chrome.offscreen.createDocument({
-      url: 'offscreen/offscreen.html',
-      reasons: ['WORKERS'],
-      justification: 'Run the local Rapfi WebAssembly worker without blocking the game page.',
-    }).finally(() => { creatingOffscreen = null })
-  }
-  await creatingOffscreen
-}
-
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (!message || message.target === 'offscreen') return false
-
-  if (message.type === 'GNA_ANALYZE') {
-    ;(async () => {
-      try {
-        await ensureOffscreenDocument()
-        const result = await chrome.runtime.sendMessage({
+  if (
+    !['GNA_SUBMIT', 'GNA_GET', 'GNA_STOP', 'GNA_RESUME', 'GNA_WINDOW'].includes(
+      m.type
+    )
+  )
+    return false
+  ;(async () => {
+    const tabId = sender.tab?.id ?? m.tabId
+    if (!Number.isInteger(tabId))
+      throw new Error('Mở extension từ tab VNCaro trước.')
+    if (m.type === 'GNA_WINDOW') {
+      await chrome.windows.create({
+        url: chrome.runtime.getURL('popup/popup.html') + '?tab=' + tabId,
+        type: 'popup',
+        width: 720,
+        height: 840,
+      })
+      return reply({ ok: true })
+    }
+    if (m.type === 'GNA_RESUME') {
+      await chrome.tabs.sendMessage(tabId, { type: 'GNA_RESCAN' })
+      return reply({ ok: true })
+    }
+    if (m.type === 'GNA_GET' && !(await exists()))
+      return reply({
+        ok: true,
+        state: { status: 'waiting', suggestions: [], history: [] },
+      })
+    await ensure()
+    const settings =
+      m.type === 'GNA_SUBMIT'
+        ? GNCore.normalizeSettings(await chrome.storage.sync.get(null))
+        : undefined
+    const result = await chrome.runtime.sendMessage({
+      ...m,
+      target: 'offscreen',
+      tabId,
+      settings,
+    })
+    reply(result)
+  })().catch((e) => reply({ ok: false, error: e.message || String(e) }))
+  return true
+})
+chrome.tabs.onRemoved.addListener((tabId) => {
+  exists()
+    .then(
+      (ok) =>
+        ok &&
+        chrome.runtime.sendMessage({
           target: 'offscreen',
-          type: 'GNA_ENGINE_ANALYZE',
-          requestId: message.requestId,
-          snapshot: message.snapshot,
-          settings: message.settings,
+          type: 'GNA_DROP',
+          tabId,
         })
-        sendResponse(result)
-      } catch (error) {
-        sendResponse({ ok: false, error: error && error.message ? error.message : String(error) })
-      }
-    })()
-    return true
-  }
-
-  if (message.type === 'GNA_ENGINE_STATUS') {
-    ;(async () => {
-      try {
-        const exists = await hasOffscreenDocument()
-        if (!exists) return sendResponse({ ok: true, ready: false })
-        sendResponse(await chrome.runtime.sendMessage({ target: 'offscreen', type: 'GNA_ENGINE_STATUS' }))
-      } catch (error) {
-        sendResponse({ ok: false, ready: false, error: String(error) })
-      }
-    })()
-    return true
-  }
-
-  return false
+    )
+    .catch(() => {})
 })
