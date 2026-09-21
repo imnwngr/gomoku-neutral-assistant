@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Gomoku Neutral Assistant</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <header>
+      <h1>Gomoku Neutral</h1>
+      <p>Rapfi chạy cục bộ · chỉ hiển thị</p>
+    </header>
+    <main>
+      <label class="toggle"><span>Bật phân tích</span><input id="enabled" type="checkbox"></label>
+      <label>Số nước gợi ý<select id="nbest"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+      <label>Thời gian suy nghĩ<select id="thinkTime"><option value="500">0,5 giây</option><option value="1000">1 giây</option><option value="1500">1,5 giây</option><option value="2000">2 giây</option><option value="3000">3 giây</option><option value="5000">5 giây</option></select></label>
+      <label>Độ đậm dấu gợi ý <output id="markerOpacityOut"></output><input id="markerOpacity" type="range" min="20" max="100" step="5"></label>
+      <label>Kích thước dấu <output id="markerScaleOut"></output><input id="markerScale" type="range" min="35" max="95" step="5"></label>
+      <label class="toggle"><span>Hiện thứ hạng 1–5</span><input id="showRank" type="checkbox"></label>
+      <label class="toggle warning"><span>Cho phép trong ván xếp hạng</span><input id="allowCompetitive" type="checkbox"></label>
+      <p class="note">Chỉ bật ở nơi được phép. Extension không thực hiện nước đi.</p>
+      <div id="status">Đang kiểm tra engine…</div>
+    </main>
+    <script src="../shared/core.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>

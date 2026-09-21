@@ -1,0 +1,41 @@
+#gna-overlay-root {
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 40 !important;
+  pointer-events: none !important;
+  font-family: Montserrat, Arial, sans-serif !important;
+}
+
+#gna-overlay-root .gna-marker {
+  position: absolute !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transform: translate(-50%, -50%) !important;
+  border-radius: 50% !important;
+  box-sizing: border-box !important;
+  color: white !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .55) !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .35), inset 0 0 0 2px rgba(255, 255, 255, .8) !important;
+}
+
+#gna-overlay-root .gna-marker.gna-x { background: #dc2626 !important; }
+#gna-overlay-root .gna-marker.gna-o { background: #16a34a !important; }
+#gna-overlay-root .gna-marker[data-rank="1"] { box-shadow: 0 0 0 2px #facc15, 0 2px 7px rgba(0, 0, 0, .45), inset 0 0 0 2px white !important; }
+
+#gna-overlay-root .gna-status {
+  position: absolute !important;
+  top: 5px !important;
+  right: 5px !important;
+  max-width: 70% !important;
+  padding: 4px 7px !important;
+  border-radius: 6px !important;
+  background: rgba(17, 24, 39, .78) !important;
+  color: white !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  line-height: 1.2 !important;
+  text-align: right !important;
+}

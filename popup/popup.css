@@ -1,0 +1,18 @@
+:root { color-scheme: light; font-family: Inter, Arial, sans-serif; }
+* { box-sizing: border-box; }
+body { width: 310px; margin: 0; color: #172033; background: #f5f7fb; }
+header { padding: 16px 18px 13px; color: white; background: linear-gradient(135deg, #172554, #2563eb); }
+h1 { margin: 0; font-size: 18px; }
+header p { margin: 5px 0 0; font-size: 11px; opacity: .8; }
+main { display: grid; gap: 12px; padding: 16px 18px; }
+label { display: grid; gap: 6px; font-size: 12px; font-weight: 700; }
+select, input[type="range"] { width: 100%; }
+select { padding: 7px; border: 1px solid #cbd5e1; border-radius: 7px; background: white; }
+.toggle { grid-template-columns: 1fr auto; align-items: center; }
+.toggle input { width: 18px; height: 18px; }
+.warning { padding-top: 10px; border-top: 1px solid #dbe2ea; color: #9a3412; }
+output { float: right; color: #2563eb; }
+.note { margin: -3px 0 0; color: #64748b; font-size: 10px; line-height: 1.45; }
+#status { padding: 8px 10px; border-radius: 7px; background: #e2e8f0; color: #475569; font-size: 11px; }
+#status.ready { background: #dcfce7; color: #166534; }
+#status.error { background: #fee2e2; color: #991b1b; }

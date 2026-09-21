@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Gomoku Neutral Assistant",
+  "description": "Local Rapfi analysis overlay for supported Neutral Gomoku boards.",
+  "version": "0.1.0",
+  "minimum_chrome_version": "116",
+  "permissions": ["storage", "offscreen"],
+  "host_permissions": ["https://vncaro.com/*", "https://*.vncaro.com/*"],
+  "background": {
+    "service_worker": "background/service-worker.js"
+  },
+  "action": {
+    "default_title": "Gomoku Neutral Assistant",
+    "default_popup": "popup/popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://vncaro.com/*", "https://*.vncaro.com/*"],
+      "js": ["shared/core.js", "content/vncaro.js"],
+      "css": ["content/overlay.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; worker-src 'self'"
+  }
+}
