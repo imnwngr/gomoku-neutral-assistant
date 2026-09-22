@@ -3,167 +3,191 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Neutral Desk · Rapfi</title>
+    <title>Neutral Nexus · Rapfi</title>
     <link rel="stylesheet" href="popup.css" />
   </head>
   <body>
-    <header class="masthead">
-      <div class="brand-mark" aria-hidden="true">
-        <span class="stone stone-x">×</span><span class="stone stone-o">○</span>
+    <div class="ambient ambient-a"></div>
+    <div class="ambient ambient-b"></div>
+
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-orbit" aria-hidden="true">
+          <span class="orbit-x">×</span><span class="orbit-o">○</span>
+        </div>
+        <div>
+          <p class="overline">GOMOKU INTELLIGENCE</p>
+          <h1>Neutral<span>Nexus</span></h1>
+        </div>
       </div>
-      <div class="brand-copy">
-        <p class="kicker">LOCAL GOMOKU ANALYSIS</p>
-        <h1>Neutral <span>Desk</span></h1>
+      <div class="engine-chip">
+        <i></i><span>RAPFI</span><small>SIMD</small>
       </div>
-      <div class="header-meta">
-        <span>RAPFI / SIMD</span>
-        <button id="detach" class="detach" title="Mở cửa sổ phân tích riêng" aria-label="Mở cửa sổ phân tích riêng">↗</button>
-      </div>
+      <button id="detach" class="icon-button" data-i18n-title="detachTitle" data-i18n-aria="detachTitle" title="Mở cửa sổ riêng" aria-label="Mở cửa sổ riêng">↗</button>
     </header>
 
     <nav class="tabs" aria-label="Navigation">
       <button id="analyzeTab" class="selected" aria-selected="true">
-        <span class="tab-index">01</span> Analysis
+        <span class="tab-icon">⌁</span><span data-i18n="analysisTab">Phân tích</span>
       </button>
       <button id="settingsTab" aria-selected="false">
-        <span class="tab-index">02</span> Settings
+        <span class="tab-icon">⚙</span><span data-i18n="settingsTab">Cài đặt</span>
       </button>
-      <span class="version">BUILD v0.2.0</span>
+      <span class="version">v0.2.0</span>
     </nav>
 
     <main>
       <section id="analyzePanel">
-        <div class="session sheet-block">
-          <div>
-            <span class="eyebrow">CURRENT BOARD</span>
-            <h2 id="boardTitle">Chờ bàn cờ</h2>
+        <div class="hero-card glass">
+          <div class="session">
+            <div>
+              <span class="eyebrow" data-i18n="currentBoard">BÀN CỜ HIỆN TẠI</span>
+              <h2 id="boardTitle">Chờ bàn cờ</h2>
+            </div>
+            <span id="stateBadge" class="badge">ĐANG CHỜ</span>
           </div>
-          <span id="stateBadge" class="badge">WAITING</span>
+          <p id="status" role="status">Mở một bàn cờ Gomoku được hỗ trợ để bắt đầu.</p>
+          <div class="signal-line"><span></span></div>
         </div>
-        <p id="status" role="status">Mở một bàn cờ Gomoku được hỗ trợ để bắt đầu.</p>
 
-        <div class="metrics" aria-label="Engine statistics">
-          <div><span>Depth</span><strong id="depth">—</strong></div>
-          <div class="eval-metric"><span>Eval</span><strong id="eval">—</strong></div>
-          <div><span>Speed</span><strong id="speed">—</strong></div>
-          <div><span>Nodes</span><strong id="nodes">—</strong></div>
-          <div><span>Time</span><strong id="time">—</strong></div>
+        <div class="metrics glass" data-i18n-aria="engineStats" aria-label="Thống kê engine">
+          <div><span data-i18n="depth">Độ sâu</span><strong id="depth">—</strong></div>
+          <div class="eval-metric"><span data-i18n="evaluation">Đánh giá</span><strong id="eval">—</strong></div>
+          <div><span data-i18n="speed">Tốc độ</span><strong id="speed">—</strong></div>
+          <div><span data-i18n="nodes">Nút</span><strong id="nodes">—</strong></div>
+          <div><span data-i18n="time">Thời gian</span><strong id="time">—</strong></div>
         </div>
 
         <div class="section-head">
           <div>
-            <span class="section-number">A</span>
-            <h3>Principal variations</h3>
+            <span class="section-glyph">◇</span>
+            <div><span class="eyebrow">MULTI PV</span><h3 data-i18n="principalVariations">Các phương án chính</h3></div>
           </div>
-          <span id="pvLabel">0 PV · BEST FIRST</span>
+          <span id="pvLabel">0 PV · MẠNH NHẤT TRƯỚC</span>
         </div>
-        <div class="table-wrap">
+        <div class="table-wrap glass">
           <table>
             <thead>
               <tr>
                 <th>#</th>
-                <th>Depth</th>
-                <th>Eval</th>
-                <th>Bestline</th>
+                <th data-i18n="depth">Độ sâu</th>
+                <th data-i18n="evaluation">Đánh giá</th>
+                <th data-i18n="bestline">Biến chính</th>
               </tr>
             </thead>
             <tbody id="pvRows">
-              <tr>
-                <td colspan="4" class="empty">Kết quả sẽ cập nhật trong khi engine đang tính.</td>
-              </tr>
+              <tr><td colspan="4" class="empty" data-i18n="resultPending">Kết quả sẽ cập nhật trong khi engine đang tính.</td></tr>
             </tbody>
           </table>
         </div>
-        <p class="hint">★ là nước mạnh nhất. 2, 3… là các phương án khác, không phải các nước liên tiếp. Eval tính theo bên đang đến lượt.</p>
+        <p class="hint" data-i18n="pvHint">★ là nước mạnh nhất. 2, 3… là các phương án khác, không phải các nước liên tiếp. Eval tính theo bên đang đến lượt.</p>
 
         <div class="section-head">
           <div>
-            <span class="section-number">B</span>
-            <h3>Evaluation history</h3>
+            <span class="section-glyph chart-glyph">⌁</span>
+            <div><span class="eyebrow">SIGNAL</span><h3 data-i18n="evaluationHistory">Lịch sử đánh giá</h3></div>
           </div>
           <span class="legend"><i></i> X / BLACK</span>
         </div>
-        <div class="chart-wrap">
-          <canvas id="evalChart" height="150" role="img" aria-label="Biểu đồ đánh giá thế cờ theo số nước đã đi"></canvas>
-          <p id="chartNote" class="hint">Chưa có dữ liệu. Không tự điền đánh giá cho các nước chưa phân tích.</p>
+        <div class="chart-wrap glass">
+          <canvas id="evalChart" height="150" role="img" data-i18n-aria="chartAria" aria-label="Biểu đồ đánh giá thế cờ"></canvas>
+          <p id="chartNote" class="hint">Chưa có dữ liệu. Chỉ ghi các position đã được phân tích.</p>
         </div>
 
         <div class="section-head">
           <div>
-            <span class="section-number">C</span>
-            <h3>Position record</h3>
+            <span class="section-glyph position-glyph">#</span>
+            <div><span class="eyebrow">FEN / MOVES</span><h3 data-i18n="positionRecord">Dữ liệu position</h3></div>
           </div>
-          <button id="copy" class="text-button">COPY</button>
+          <button id="copy" class="text-button" data-i18n="copy">SAO CHÉP</button>
         </div>
-        <textarea id="position" rows="2" readonly aria-label="Current position" placeholder="Position sẽ xuất hiện tại đây"></textarea>
+        <textarea id="position" rows="2" readonly data-i18n-aria="currentPosition" aria-label="Position hiện tại" data-i18n-placeholder="positionPlaceholder" placeholder="Position sẽ xuất hiện tại đây"></textarea>
         <p id="positionNote" class="hint">Lưu position và các nước đi quan sát được trong phiên.</p>
 
         <footer>
-          <button id="stop" class="secondary">Tạm dừng</button>
-          <button id="resume" class="primary">Phân tích lại <span>→</span></button>
+          <button id="stop" class="secondary"><span class="button-dot"></span><span data-i18n="pause">Tạm dừng</span></button>
+          <button id="resume" class="primary"><span data-i18n="reanalyze">Phân tích lại</span><b>→</b></button>
         </footer>
-        <p class="footnote"><span></span> LOCAL ONLY · 1 THREAD · CHỈ HIỂN THỊ GỢI Ý</p>
+        <p class="footnote"><span></span><span data-i18n="localOnly">LOCAL ONLY · 1 THREAD · CHỈ HIỂN THỊ GỢI Ý</span></p>
       </section>
 
       <section id="settingsPanel" hidden>
-        <div class="session sheet-block">
-          <div>
-            <span class="eyebrow">ENGINE CONTROL</span>
-            <h2>Thinking & display</h2>
+        <div class="hero-card glass settings-hero">
+          <div class="session">
+            <div>
+              <span class="eyebrow" data-i18n="engineControl">ĐIỀU KHIỂN ENGINE</span>
+              <h2 data-i18n="thinkingDisplay">Tính toán & hiển thị</h2>
+            </div>
+            <label class="switch" data-i18n-title="enableAnalysis" title="Bật phân tích">
+              <input id="enabled" type="checkbox" /><span></span>
+            </label>
           </div>
-          <label class="switch" title="Bật phân tích">
-            <input id="enabled" type="checkbox" />
-            <span></span>
+        </div>
+
+        <div class="section-head settings-heading">
+          <div><span class="section-glyph">文</span><div><span class="eyebrow">INTERFACE</span><h3 data-i18n="language">Ngôn ngữ</h3></div></div>
+          <span data-i18n="languageHint">ÁP DỤNG NGAY</span>
+        </div>
+        <div class="settings-list glass language-row">
+          <label>
+            <span><b data-i18n="displayLanguage">Ngôn ngữ hiển thị</b><small data-i18n="languageDescription">Lựa chọn được lưu trên trình duyệt này.</small></span>
+            <select id="language" aria-label="Language">
+              <option value="vi">Tiếng Việt</option>
+              <option value="en">English</option>
+            </select>
           </label>
         </div>
 
-        <div class="section-head setting-title">
-          <div><span class="section-number">A</span><h3>Thinking time</h3></div>
-          <span>CHOOSE A PROFILE</span>
+        <div class="section-head settings-heading">
+          <div><span class="section-glyph">◷</span><div><span class="eyebrow">TIME BUDGET</span><h3 data-i18n="thinkingTime">Thời gian tính</h3></div></div>
+          <span data-i18n="chooseProfile">CHỌN CẤU HÌNH</span>
         </div>
         <div class="mode-grid">
-          <label><input type="radio" name="timeMode" value="fast" /><span><b>Fast game</b><small>~3 min / 7s mỗi position</small></span></label>
-          <label><input type="radio" name="timeMode" value="slow" /><span><b>Slow game</b><small>~15 min / 40s mỗi position</small></span></label>
-          <label><input type="radio" name="timeMode" value="analysis" /><span><b>Analysis <i>∞</i></b><small>Không giới hạn tổng thời gian</small></span></label>
-          <label><input type="radio" name="timeMode" value="custom" /><span><b>Custom</b><small>Giới hạn tùy chỉnh</small></span></label>
+          <label><input type="radio" name="timeMode" value="fast" /><span><b data-i18n="fastGame">Ván nhanh</b><small data-i18n="fastDescription">~3 phút / 7 giây mỗi position</small></span></label>
+          <label><input type="radio" name="timeMode" value="slow" /><span><b data-i18n="slowGame">Ván chậm</b><small data-i18n="slowDescription">~15 phút / 40 giây mỗi position</small></span></label>
+          <label><input type="radio" name="timeMode" value="analysis" /><span><b><span data-i18n="analysisMode">Phân tích</span> <i>∞</i></b><small data-i18n="analysisDescription">Không giới hạn tổng thời gian</small></span></label>
+          <label><input type="radio" name="timeMode" value="custom" /><span><b data-i18n="custom">Tùy chỉnh</b><small data-i18n="customDescription">Tự đặt giới hạn tìm kiếm</small></span></label>
         </div>
-        <div id="customSettings" class="settings-list" hidden>
-          <label><span>Time / position <small>Đơn vị: giây</small></span><input id="customSeconds" type="number" min="0.1" max="3600" step="0.1" /></label>
-          <label><span>Max depth</span><input id="maxDepth" type="number" min="1" max="100" /></label>
-          <label><span>Max nodes <small>0 = không giới hạn</small></span><input id="maxNodes" type="number" min="0" max="1000000000000" /></label>
+        <div id="customSettings" class="settings-list glass" hidden>
+          <label><span><b data-i18n="timePerPosition">Thời gian / position</b><small data-i18n="secondsUnit">Đơn vị: giây</small></span><input id="customSeconds" type="number" min="0.1" max="3600" step="0.1" /></label>
+          <label><span><b data-i18n="maxDepth">Độ sâu tối đa</b></span><input id="maxDepth" type="number" min="1" max="100" /></label>
+          <label><span><b data-i18n="maxNodes">Số nút tối đa</b><small data-i18n="zeroUnlimited">0 = không giới hạn</small></span><input id="maxNodes" type="number" min="0" max="1000000000000" /></label>
         </div>
 
-        <div class="section-head setting-title">
-          <div><span class="section-number">B</span><h3>Search controls</h3></div>
+        <div class="section-head settings-heading">
+          <div><span class="section-glyph">⌘</span><div><span class="eyebrow">SEARCH CORE</span><h3 data-i18n="searchControls">Điều khiển tìm kiếm</h3></div></div>
           <span>ENGINE</span>
         </div>
-        <div class="settings-list">
-          <label><span>Multi PV <small>Số phương án, xếp mạnh → yếu</small></span><input id="nbest" type="number" min="1" max="10" /></label>
-          <label><span>Handicap <small>0 = toàn bộ sức mạnh</small></span><input id="handicap" type="number" min="0" max="100" /></label>
-          <label><span>Engine model</span><select id="model"><option value="config.toml">Mix9svq NNUE</option><option value="classical220723.toml">Classical 2022</option><option value="classical210901.toml">Classical 2021</option></select></label>
-          <label><span>Candidate range</span><select id="candRange"><option value="0">Square 2</option><option value="1">Square 2 + Line 3</option><option value="2">Square 3</option><option value="3">Square 3 + Line 4 · Recommended</option><option value="4">Square 4</option><option value="5">Full board</option></select></label>
-          <label><span>Transposition table</span><select id="hashSize"><option value="32">32 MB</option><option value="64">64 MB</option><option value="128">128 MB</option><option value="256">256 MB</option></select></label>
+        <div class="settings-list glass">
+          <label><span><b>Multi PV</b><small data-i18n="multiPvDescription">Số phương án, xếp mạnh → yếu</small></span><input id="nbest" type="number" min="1" max="10" /></label>
+          <label><span><b data-i18n="handicap">Handicap</b><small data-i18n="handicapDescription">0 = toàn bộ sức mạnh</small></span><input id="handicap" type="number" min="0" max="100" /></label>
+          <label><span><b data-i18n="engineModel">Mô hình engine</b></span><select id="model"><option value="config.toml">Mix9svq NNUE</option><option value="classical220723.toml">Classical 2022</option><option value="classical210901.toml">Classical 2021</option></select></label>
+          <label><span><b data-i18n="candidateRange">Phạm vi ứng viên</b></span><select id="candRange"><option value="0" data-i18n="cand0">Ô vuông 2</option><option value="1" data-i18n="cand1">Ô vuông 2 + Đường 3</option><option value="2" data-i18n="cand2">Ô vuông 3</option><option value="3" data-i18n="cand3">Ô vuông 3 + Đường 4 · Khuyên dùng</option><option value="4" data-i18n="cand4">Ô vuông 4</option><option value="5" data-i18n="cand5">Toàn bàn cờ</option></select></label>
+          <label><span><b data-i18n="transpositionTable">Bảng chuyển vị</b></span><select id="hashSize"><option value="32">32 MB</option><option value="64">64 MB</option><option value="128">128 MB</option><option value="256">256 MB</option></select></label>
         </div>
 
-        <div class="section-head setting-title">
-          <div><span class="section-number">C</span><h3>Board overlay</h3></div>
-          <span>DISPLAY</span>
+        <div class="section-head settings-heading">
+          <div><span class="section-glyph">◉</span><div><span class="eyebrow">OVERLAY</span><h3 data-i18n="boardOverlay">Hiển thị trên bàn cờ</h3></div></div>
+          <span data-i18n="display">HIỂN THỊ</span>
         </div>
-        <div class="settings-list">
-          <label><span>Độ đậm <output id="opacityOut"></output></span><input id="markerOpacity" type="range" min="0" max="100" /></label>
-          <label><span>Kích thước <output id="scaleOut"></output></span><input id="markerScale" type="range" min="35" max="95" /></label>
+        <div class="settings-list glass">
+          <label><span><b data-i18n="opacity">Độ đậm</b> <output id="opacityOut"></output></span><input id="markerOpacity" type="range" min="0" max="100" /></label>
+          <label><span><b data-i18n="size">Kích thước</b> <output id="scaleOut"></output></span><input id="markerScale" type="range" min="35" max="95" /></label>
         </div>
 
-        <div class="notice">
-          <strong>Ghi chú phiên phân tích</strong>
-          <p>Engine giữ bảng nhớ tìm kiếm trong phiên. Phân tích dừng khi bạn tạm dừng, đổi position, tìm thấy kết quả quyết định hoặc đạt depth 100.</p>
-          <p>Fast/Slow dùng ngân sách tính của extension, không đọc đồng hồ trận đấu. Đổi model, bảng nhớ hoặc candidate range sẽ cấu hình lại engine.</p>
+        <div class="notice glass">
+          <span class="notice-icon">i</span>
+          <div>
+            <strong data-i18n="sessionNote">Ghi chú phiên phân tích</strong>
+            <p data-i18n="sessionNoteOne">Engine giữ bảng nhớ tìm kiếm trong phiên. Phân tích dừng khi bạn tạm dừng, đổi position, tìm thấy kết quả quyết định hoặc đạt depth 100.</p>
+            <p data-i18n="sessionNoteTwo">Fast/Slow dùng ngân sách tính của extension, không đọc đồng hồ trận đấu. Đổi model, bảng nhớ hoặc candidate range sẽ cấu hình lại engine.</p>
+          </div>
         </div>
-        <p id="saved" class="save-status" role="status">Thiết lập tự động lưu</p>
+        <p id="saved" class="save-status" role="status" data-i18n="autoSave">Thiết lập tự động lưu</p>
       </section>
     </main>
+
     <script src="../shared/core.js"></script>
     <script src="popup.js"></script>
   </body>
 </html>
-
