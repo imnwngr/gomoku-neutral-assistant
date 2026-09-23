@@ -1,6 +1,6 @@
-# Neutral Nexus â€” Gomoku Neutral Assistant
+# Neutral Nexus — Gomoku Neutral Assistant
 
-Read-only, locally computed Rapfi analysis for supported 19Ã—19 Gomoku boards with three permanent Neutral cells. Version 0.2.0 fixes position serialization, introduces persistent analysis sessions and adds a modern bilingual Analyze / Settings interface. It never clicks, submits a move or opens a game-server socket.
+Read-only, locally computed Rapfi analysis for supported 19×19 Gomoku boards with three permanent Neutral cells. Version 0.2.0 fixes position serialization, introduces persistent analysis sessions and adds a modern bilingual Analyze / Settings interface. It never clicks, submits a move or opens a game-server socket.
 
 ## Website compatibility
 
@@ -26,7 +26,7 @@ Node.js is only needed for development tests / packaging, not to run the extensi
 - Live depth, selective depth, evaluation, nodes, speed, elapsed time and complete ranked MultiPV lines.
 - Only the latest requested board is pending. Results for superseded boards never get painted on the current board.
 - Board markers are always ranked: star = best, 2/3/etc. = alternatives. These are alternative first moves, not successive moves in one line.
-- Fast / Slow / Analysis / Custom modes; handicap, three bundled models, candidate range, 32â€“256 MB hash, marker opacity and scale.
+- Fast / Slow / Analysis / Custom modes; handicap, three bundled models, candidate range, 32–256 MB hash, marker opacity and scale.
 - Removed competitive-game toggle and rank visibility toggle.
 - Evaluation history (normalized to Black/X), copyable position, pause/resume and a detached window.
 - Modern dark cryptocurrency-inspired UI with glassmorphic panels, neon accents and a fixed readable popup width.
@@ -44,7 +44,7 @@ Fast mode uses up to 7 seconds per position and a 3-minute extension-compute bud
 
 Sessions live in the offscreen document and survive popup closure and service-worker suspension. Browser/extension restart loses engine hash and in-memory sessions. Only the most recently requested board is actively analyzed; opening another board pauses the previous session.
 
-If attached midgame, a board may not expose a complete move history. The extension exports an explicitly labeled **snapshot JSON** rather than fabricating a replay string. When observed from the start, Position uses `n:g12,n14,j7|...` compatible with Gomoku Calculator. Letters use Aâ€“S and rows count upward from the bottom; site-specific numbering is translated by the active adapter. Neutral walls and X's first/second-move root restrictions are enforced. Historical chart points are only from actually analyzed positions; no backfilled or invented scores.
+If attached midgame, a board may not expose a complete move history. The extension exports an explicitly labeled **snapshot JSON** rather than fabricating a replay string. When observed from the start, Position uses `n:g12,n14,j7|...` compatible with Gomoku Calculator. Letters use A–S and rows count upward from the bottom; site-specific numbering is translated by the active adapter. Neutral walls and X's first/second-move root restrictions are enforced. Historical chart points are only from actually analyzed positions; no backfilled or invented scores.
 
 ## Development
 
