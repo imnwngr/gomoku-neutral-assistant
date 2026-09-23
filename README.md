@@ -1,13 +1,19 @@
-# Neutral Lab — Gomoku Neutral Assistant
+# Neutral Nexus â€” Gomoku Neutral Assistant
 
-Read-only, locally computed Rapfi analysis for VNCaro 19×19 boards with three permanent Neutral cells. Version 0.2.0 fixes position serialization and introduces persistent analysis sessions with a live Analyze / Settings interface. It never clicks, submits a move, or opens a game-server socket.
+Read-only, locally computed Rapfi analysis for supported 19Ã—19 Gomoku boards with three permanent Neutral cells. Version 0.2.0 fixes position serialization, introduces persistent analysis sessions and adds a modern bilingual Analyze / Settings interface. It never clicks, submits a move or opens a game-server socket.
+
+## Website compatibility
+
+The analysis engine and UI are website-independent. Board recognition is provided by site adapters, because every Gomoku website uses different HTML, board coordinates and update events.
+
+The packaged extension works only on hosts and adapters declared in `manifest.json`. Supporting another website requires a dedicated adapter, its host permission and regression tests. This project does not claim automatic compatibility with every Gomoku website.
 
 ## Install / upgrade
 
 1. Back up your current checkout or create a branch (`git switch -c feature/analysis-v020`).
 2. Extract the **source** ZIP into the repository folder (the one containing `manifest.json`). Do not replace or delete your existing `.git` directory. The **runtime** ZIP is for installation only.
 3. Open `chrome://extensions`, enable Developer mode and load this directory, or click Reload on the existing unpacked extension. If the old extension was loaded from `dist`, load the updated root instead; old `dist` is not updated automatically.
-4. Reload the VNCaro page. Extension reloads do not replace content scripts already injected into open tabs.
+4. Reload the supported Gomoku match page. Extension reloads do not replace content scripts already injected into open tabs.
 5. Click the extension icon. Use the upper-right arrow to open a persistent analysis window that stays visible beside the board.
 
 Node.js is only needed for development tests / packaging, not to run the extension.
@@ -16,13 +22,15 @@ Node.js is only needed for development tests / packaging, not to run the extensi
 
 - **Correct Gomocup position serialization.** Version 0.1 grouped all X stones before all O stones. Rapfi interprets a sequence, inserting PASS moves between repeated colors. On odd-ply positions this could leave the engine analyzing Black when White was actually to move. Version 0.2 alternates colors, maps SELF/OPPONENT relative to the side to move, and preserves observed history.
 - Persistent WASM instance and model; `START` only for a new/reset game; hash/model/range configuration only when relevant settings change.
-- Cached DOM cell records. Mutation batches update affected cells. VNCaro redraws all cells after a move, so reconciliation may still inspect all 361 cells, but unchanged positions do not trigger searches.
+- Cached DOM cell records. Mutation batches update affected cells. Some websites redraw the entire board after a move, so reconciliation may still inspect all 361 cells, but unchanged positions do not trigger searches.
 - Live depth, selective depth, evaluation, nodes, speed, elapsed time and complete ranked MultiPV lines.
 - Only the latest requested board is pending. Results for superseded boards never get painted on the current board.
 - Board markers are always ranked: star = best, 2/3/etc. = alternatives. These are alternative first moves, not successive moves in one line.
-- Fast / Slow / Analysis / Custom modes; handicap, three bundled models, candidate range, 32–256 MB hash, marker opacity and scale.
+- Fast / Slow / Analysis / Custom modes; handicap, three bundled models, candidate range, 32â€“256 MB hash, marker opacity and scale.
 - Removed competitive-game toggle and rank visibility toggle.
 - Evaluation history (normalized to Black/X), copyable position, pause/resume and a detached window.
+- Modern dark cryptocurrency-inspired UI with glassmorphic panels, neon accents and a fixed readable popup width.
+- Instant Vietnamese / English switching. The selected language is synchronized and remembered.
 
 ## Important implementation limits
 
@@ -36,7 +44,7 @@ Fast mode uses up to 7 seconds per position and a 3-minute extension-compute bud
 
 Sessions live in the offscreen document and survive popup closure and service-worker suspension. Browser/extension restart loses engine hash and in-memory sessions. Only the most recently requested board is actively analyzed; opening another board pauses the previous session.
 
-If attached midgame, the board does not provide a complete move history. The extension exports an explicitly labeled **snapshot JSON** rather than fabricating a replay string. When observed from the start, Position uses `n:g12,n14,j7|...` compatible with Gomoku Calculator. Letters use A–S, rows count upward from the bottom; numeric VNCaro labels use stride 20. Neutral walls and X's first/second-move root restrictions are enforced. Historical chart points are only from actually analyzed positions; no backfilled or invented scores.
+If attached midgame, a board may not expose a complete move history. The extension exports an explicitly labeled **snapshot JSON** rather than fabricating a replay string. When observed from the start, Position uses `n:g12,n14,j7|...` compatible with Gomoku Calculator. Letters use Aâ€“S and rows count upward from the bottom; site-specific numbering is translated by the active adapter. Neutral walls and X's first/second-move root restrictions are enforced. Historical chart points are only from actually analyzed positions; no backfilled or invented scores.
 
 ## Development
 
@@ -58,12 +66,12 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-This launches the actual unpacked extension against a locally supplied VNCaro-shaped page. It does not contact or play on a live game server. Unit and real-WASM tests were executed for this release. Chromium integration / visual QA could not be executed in the authoring environment because the browser binary download was unavailable; run this test and verify the layout locally before treating the release as production-ready.
+This launches the actual unpacked extension against a locally supplied board fixture. It does not contact or play on a live game server. Unit and real-WASM tests were executed for this release. Chromium integration / visual QA could not be executed in the authoring environment because the browser binary download was unavailable; run this test and verify the layout locally before treating the release as production-ready.
 
 ## Structure
 
 - `shared/core.js`: normalization, observed history, Gomocup serialization, opening legality, MultiPV parsing.
-- `content/vncaro.js`: cached DOM observer and non-interactive board markers.
+- `content/`: site adapters, cached DOM observation and non-interactive board markers.
 - `background/service-worker.js`: browser routing and offscreen lifecycle.
 - `offscreen/offscreen.js`: per-tab sessions, latest-only scheduling, progress/history.
 - `engine/rapfi.worker.js`: persistent WASM, board/config reuse, bounded search, internal takeback.
