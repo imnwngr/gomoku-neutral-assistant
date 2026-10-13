@@ -1,72 +1,111 @@
-# Neutral Nexus — Gomoku Neutral Assistant
+<div align="center">
+  <img src=".github/assets/neutral-nexus-banner.svg" alt="Neutral Nexus — Read-only Gomoku analysis powered by Rapfi WASM" />
 
-**Language:** English | [Tiếng Việt](README.vi.md)
+  <h3>See the position. Explore the possibilities. Stay in control.</h3>
+  <p>A local, read-only analysis companion for supported <strong>19 × 19 Gomoku boards with 3 Neutral cells</strong>.</p>
 
-> **Version 0.2.0 · Chrome/Chromium extension · GPL-3.0-only**
+  <p>
+    <img src="https://img.shields.io/badge/version-v0.2.0-8B5CF6?style=flat-square" alt="Version 0.2.0" />
+    <img src="https://img.shields.io/badge/engine-Rapfi%20WASM-00B7C7?style=flat-square" alt="Rapfi WASM" />
+    <img src="https://img.shields.io/badge/browser-Chrome%20%7C%20Chromium-2563EB?style=flat-square" alt="Chrome and Chromium" />
+    <img src="https://img.shields.io/badge/mode-read--only-16A34A?style=flat-square" alt="Read-only" />
+    <img src="https://img.shields.io/badge/license-GPL--3.0--only-6B7280?style=flat-square" alt="GPL-3.0-only" />
+  </p>
 
-Neutral Nexus is a **read-only Gomoku analysis assistant** powered by a locally running **Rapfi WebAssembly (WASM)** engine. It analyzes supported **19 × 19 boards with three permanent Neutral cells**, displays evaluations and ranked candidate moves, and offers an English/Vietnamese interface.
+  <p><strong>English</strong> · <a href="README.vi.md">Tiếng Việt</a></p>
+  <p>
+    <a href="#quick-start">Quick start</a> ·
+    <a href="#features">Features</a> ·
+    <a href="#compatibility">Compatibility</a> ·
+    <a href="#analysis-modes">Analysis modes</a> ·
+    <a href="#development">Development</a>
+  </p>
+</div>
 
-The extension **never clicks the board, submits a move, or opens a game-server socket**. Its purpose is to inspect and visualize positions—not to play on the user's behalf.
+---
 
-## Highlights
+> [!IMPORTANT]
+> **An assistant, not an autoplayer.** Neutral Nexus reads supported board positions and visualizes candidate moves. It **never clicks the board, submits moves, or opens game-server sockets**. Suggestions are alternative *first moves*, not an automatic move sequence.
 
-- **Local analysis:** Rapfi runs in a Web Worker, with a persistent WASM instance, model, and hash table while the analysis session remains active.
-- **Ranked move suggestions:** A star marks the best candidate; `2`, `3`, and so on identify alternatives. These markers represent **alternative first moves**, not a sequence of moves.
-- **Live search information:** Depth, selective depth, evaluation, nodes, speed, elapsed time, and complete ranked MultiPV lines.
-- **Configurable analysis:** Fast, Slow, Analysis, and Custom modes; handicap, three bundled models, candidate range, 32–256 MB hash, and marker appearance settings.
-- **Session tools:** Pause/resume, a detached analysis window, a copyable position, and a history chart based only on positions actually analyzed.
-- **Bilingual interface:** Switch instantly between English and Vietnamese. The selected language is synchronized and remembered.
-- **Read-only operation:** No automated clicks, moves, or gameplay commands are sent to the website.
+<a id="features"></a>
+## ✨ What you get
 
-## Supported boards and websites
+| | |
+| :--- | :--- |
+| 🧠 **Local Rapfi engine**<br>Rapfi runs through WASM in a Web Worker. Its model and hash table remain available during the active analysis session. | ⭐ **Ranked move candidates**<br>A star marks the top option; `2`, `3`, … indicate alternative first moves on the board. |
+| 📊 **Live search insights**<br>Evaluation, depth, selective depth, searched nodes, speed, elapsed time, and ranked MultiPV lines. | 🎛️ **Flexible settings**<br>Fast / Slow / Analysis / Custom, handicap, 3 bundled models, candidate range, 32–256 MB hash, and marker styles. |
+| 🪟 **Session-friendly workflow**<br>Pause/resume, a detached analysis window, position copying, and an evaluation history of positions actually analyzed. | 🌐 **English + Vietnamese**<br>Switch languages instantly; the preference is synchronized and remembered. |
 
-**Board support is not the same as website support.** The engine and analysis UI are website-independent, but reading the board requires a dedicated site adapter. Each website may use different DOM elements, coordinates, and update events.
+<div align="center">
+  <sub>19 × 19 board &nbsp; • &nbsp; 3 permanent Neutral cells &nbsp; • &nbsp; Analysis stays local &nbsp; • &nbsp; No automated play</sub>
+</div>
 
-The packaged extension supports **only the hosts and adapters declared in `manifest.json`**. Adding a new website requires a site adapter, host permission, and regression tests. It does **not** automatically work on every Gomoku website.
+<a id="quick-start"></a>
+## 🚀 Quick start
 
-Positions are interpreted with the appropriate three Neutral cells and opening restrictions. When the extension joins a game mid-session without complete move history, it exports an explicitly labeled **snapshot JSON** rather than inventing a replay. If the game was observed from the beginning, the Position format follows the Gomoku Calculator convention (`n:g12,n14,j7|...`). Coordinates use columns A–S and rows counted upward from the bottom, with site-specific numbering handled by the adapter.
+**No Node.js is needed to run the extension.**
 
-## Installation / upgrade
+1. [Download this repository as ZIP](https://github.com/imnwngr/gomoku-neutral-assistant/archive/refs/heads/main.zip) or clone it, then extract it if needed.
+2. Open `chrome://extensions` in Chrome or another supported Chromium browser.
+3. Enable **Developer mode** → **Load unpacked** → select the folder that contains `manifest.json`.
+4. Reload a **supported** Gomoku website so the content scripts can attach, then open the extension from the toolbar.
+5. Use the arrow in the upper-right of the popup to open a separate, persistent analysis window beside the board.
 
-1. Back up your checkout, or create a branch before updating (for example, `git switch -c feature/analysis-v020`).
-2. Place the extension source files in the repository root—the directory containing `manifest.json`. If updating from a source ZIP, **do not delete or replace `.git`**. The runtime ZIP is for installation, not for replacing a Git checkout.
-3. Visit `chrome://extensions`, turn on **Developer mode**, and choose **Load unpacked** to select the repository root; or click **Reload** for an already-loaded extension. If you previously loaded `dist`, load the updated root instead: the old `dist` directory is not automatically updated.
-4. Reload the supported Gomoku page so its content scripts are reinjected.
-5. Click the extension icon. Use the upper-right arrow to open a persistent analysis window alongside the board.
+> [!TIP]
+> Updating an existing installation? Choose **Reload** on the extension card, then reload the Gomoku tab. If you previously installed from `dist`, reselect the updated repository root; the old `dist` directory does not update itself.
 
-Node.js is needed only for development, testing, and packaging—not for running the extension.
+<details>
+<summary><strong>Updating from an existing Git checkout</strong></summary>
 
-## Analysis modes and behavior
+Before replacing files, back up your checkout or create a branch (for example, `git switch -c feature/analysis-v020`). A runtime ZIP is intended for browser installation, **not** for overwriting your Git repository. If copying files from a source ZIP, do not delete or replace the `.git` directory.
 
-| Mode | Per-position limit | Extension analysis budget per game session |
-| --- | --- | --- |
-| **Fast** | Up to 7 seconds | 3 minutes |
-| **Slow** | Up to 40 seconds | 15 minutes |
-| **Analysis** | No overall time budget; stops under the conditions described below | No fixed overall budget |
-| **Custom** | Configurable time, depth, and/or node limits | Depends on configuration |
+</details>
 
-These are **extension compute budgets**, not the players' live clocks. More MultiPV lines divide search work across more alternatives. Handicap `0` means full strength.
+<a id="compatibility"></a>
+## 🧩 Boards and website compatibility
 
-Only the latest requested board is actively analyzed. When switching to another board, the previous session is paused and obsolete results are never drawn over the current board. Sessions reside in an offscreen document, so they can survive popup closure and service-worker suspension; **browser or extension restarts clear in-memory sessions and engine hash**.
+**Board support ≠ universal website support.** The engine and UI are site-independent, but obtaining board data requires an individual **site adapter**. The packaged extension works **only with the hosts and adapters declared in `manifest.json`**; other sites need an adapter, appropriate host permission, and regression tests.
 
-### Engine limitations
+- **Board format:** 19 × 19, with 3 permanent Neutral cells and the applicable opening restrictions.
+- **Position export:** When the full move history was observed, it follows the [Gomoku Calculator](https://github.com/imnwngr/gomoku-calculator) convention, such as `n:g12,n14,j7|...`.
+- **Joining mid-game:** If the full history is unavailable, the extension exports a clearly labeled **snapshot JSON** instead of fabricating a replay.
+- **Coordinates:** Columns **A–S**, with rows counted upward from the bottom. Site-specific numbering is handled by the adapter.
 
-The included Rapfi binary is **single-threaded SIMD** and searches synchronously within a Web Worker. An ordinary `postMessage('YXSTOP')` **cannot interrupt a search that is currently blocking the worker**. This release does not provide multithreaded search or true concurrent pondering.
+<a id="analysis-modes"></a>
+## ⚡ Analysis modes
 
-To reuse the worker, model, and transposition table while responding to changing positions, analysis runs in bounded **750 ms work slices**. Between slices, the worker uses `TAKEBACK` to undo Rapfi's internal hypothetical best move and continues from the last reported depth with `INFO START_DEPTH`. A search can stop on a reported mate, no legal candidate, depth 100, manual pause, or a replaced position. The native time limit is approximate, so interruption may take **longer than 750 ms**.
+| Mode | Per-position limit | Extension compute budget per game session |
+| :--- | :--- | :--- |
+| 🟢 **Fast** | Up to **7 s** | **3 min** |
+| 🟡 **Slow** | Up to **40 s** | **15 min** |
+| 🔵 **Analysis** | No fixed total limit; stops under engine/session conditions | No fixed overall budget |
+| 🟣 **Custom** | Configurable time, depth and/or node limits | Depends on settings |
 
-These are restarted search slices—not a preserved C++ search call stack. Restart overhead exists, and strength parity with native or multithreaded Rapfi has **not been benchmarked**. On a changed position, the worker sends one cached `YXBOARD`; it does not rebuild the position each slice. A genuinely incremental engine move/undo protocol would require a different engine build.
+These are **extension computation budgets**, not the players' game clocks. Higher MultiPV counts spread search work over more alternatives; handicap `0` means full strength.
 
-## What's new in v0.2.0
+Only the **latest requested position** is actively analyzed. A previous tab's session is paused when switching boards, and stale results never overlay the current board. Offscreen sessions can survive popup closure or service-worker suspension, but **restarting the browser or extension clears in-memory sessions and the engine hash**.
 
-- **Correct Gomocup serialization:** v0.1 incorrectly grouped all X stones before all O stones. Because Rapfi interprets an ordered move sequence and inserts PASS moves between repeated colors, certain odd-ply positions could be analyzed for the wrong side to move. v0.2 alternates colors correctly, maps SELF/OPPONENT relative to the current player, and retains observed move history.
-- **Better performance:** Persistent WASM engine/model; `START` only on a new or reset game; model/hash/range updates only when their settings change; cached DOM cell records; and no new search for an unchanged position. Whole-board reconciliation may still be needed when a website redraws the entire board.
-- **Improved analysis display:** Live progress, complete ranked MultiPV lines, best/alternative board markers, evaluation history, and copyable positions.
-- **Improved workflow:** Latest-position-only scheduling, persistent analysis sessions, pause/resume, and a detached window.
-- **Updated interface:** Dark glassmorphic Analyze / Settings UI with neon accents, fixed readable popup width, and synchronized English/Vietnamese localization.
-- **Simplified settings:** Removed the competitive-game toggle and the rank-visibility toggle.
+<details>
+<summary><strong>🔬 Engine behavior and limitations</strong></summary>
 
-## Development and testing
+The bundled Rapfi binary uses **single-threaded SIMD** and performs synchronous search inside a Web Worker. An ordinary `postMessage('YXSTOP')` **cannot instantly interrupt** an active, blocking search. This release has neither multithreaded search nor true concurrent pondering.
+
+Analysis uses bounded **750 ms target work slices** to reuse the worker, WASM model, and transposition table while remaining responsive to new positions. Between slices, the worker issues `TAKEBACK` for Rapfi's internal hypothetical best move and resumes from the last reported depth via `INFO START_DEPTH`. A reported mate, no legal candidate, depth 100, manual pause, or replacement position may stop analysis. Since the native time limit is approximate, stopping can take **longer than 750 ms**.
+
+These are **restarted search slices**, not a preserved C++ call stack. Restart overhead exists, and strength parity with native or multithreaded Rapfi **has not been benchmarked**. For a changed position, a cached `YXBOARD` is sent once; the board is not reconstructed for each slice. A truly incremental engine move/undo protocol would require a different engine build.
+
+</details>
+
+## 🆕 What's new in v0.2.0
+
+- **Correct move serialization:** Fixes v0.1's X-then-O ordering that could make Rapfi analyze the wrong side on some odd-ply positions. Colors are alternated, SELF/OPPONENT is mapped to the current player, and observed move history is retained.
+- **Less redundant work:** Persistent WASM/model, `START` only for a new/reset game, settings updated only when changed, cached DOM cells, and no re-search for unchanged positions. Some site redraws still require full-board reconciliation.
+- **More useful visualizations:** Search progress, full ranked MultiPV lines, best/alternative markers, evaluation history, and copyable positions.
+- **Better workflow:** Latest-position scheduling, pause/resume, persistent offscreen sessions, detached window, and a refreshed dark Analyze / Settings interface with synchronized bilingual localization.
+- **Simpler settings:** Competitive-game toggle and rank-visibility toggle removed.
+
+<a id="development"></a>
+## 🛠️ Development and tests
 
 ```bash
 npm test
@@ -76,7 +115,8 @@ npm run package
 node tools/package.cjs --source
 ```
 
-Optional Chromium integration test:
+<details>
+<summary><strong>Optional Chromium integration test</strong></summary>
 
 ```bash
 npm install --no-save playwright
@@ -84,27 +124,41 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-The browser test loads the real unpacked extension against a **local board fixture**; it does not contact or play on a live game server.
+The browser test loads the actual unpacked extension against a **local board fixture**. It does not connect to or play on a real game server.
 
-There are no production npm dependencies. Packaging uses PowerShell on Windows and `zip` on Linux/macOS, and refuses to overwrite an existing ZIP with the same version. The original v0.1 files remain unchanged. Unit and real-WASM tests were reported as executed for v0.2.0; Chromium integration and visual QA could not run in the original authoring environment because the browser binary could not be downloaded. **Verify the browser test and layout locally before treating the release as production-ready.**
+</details>
 
-## Project structure
+**Development notes:** No production npm dependencies. Packaging uses PowerShell on Windows and `zip` on Linux/macOS, and refuses to overwrite an existing ZIP of the same version. Original v0.1 files remain unchanged. Unit and real-WASM tests were reported as executed for v0.2.0; Chromium integration and visual QA were not run in the original authoring environment because the browser binary could not be downloaded. **Run the browser test and inspect the layout locally before treating the release as production-ready.**
+
+<details>
+<summary><strong>📁 Project structure</strong></summary>
 
 | Path | Responsibility |
-| --- | --- |
+| :--- | :--- |
 | `shared/core.js` | Position normalization, observed history, Gomocup serialization, opening rules, MultiPV parsing |
-| `content/` | Site adapters, cached DOM observation, non-interactive board markers |
-| `background/service-worker.js` | Browser message routing and offscreen-document lifecycle |
-| `offscreen/offscreen.js` | Per-tab sessions, latest-position scheduling, progress, and evaluation history |
-| `engine/rapfi.worker.js` | Persistent WASM engine, board/config reuse, bounded searches, internal takeback |
+| `content/` | Website adapters, cached DOM observation, non-interactive board markers |
+| `background/service-worker.js` | Browser messages and offscreen-document lifecycle |
+| `offscreen/offscreen.js` | Per-tab sessions, latest-position scheduling, progress, evaluation history |
+| `engine/rapfi.worker.js` | Persistent WASM, board/config reuse, bounded searches, internal takeback |
 | `popup/` | Analyze / Settings views and detached window |
 | `tests/` | Unit, scheduling, real-WASM, and worker regression tests |
 
-## License and upstream projects
+</details>
 
-This project is distributed under **GPL-3.0-only**. Preserve `LICENSE` and `third_party/rapfi/` when redistributing.
+## 📜 License and acknowledgements
 
-- Rapfi engine source: <https://github.com/imnwngr/rapfi>
-- Gomoku Calculator: <https://github.com/imnwngr/gomoku-calculator>
+Licensed under **[GPL-3.0-only](LICENSE)**. Preserve `LICENSE` and `third_party/rapfi/` when redistributing.
 
-The bundled engine assets come from a previously packaged **customized Rapfi build**. Do not assume current upstream HEAD exactly reproduces these binaries without verifying the original build revision. A source ZIP of this extension does **not** contain the complete C++ engine source.
+- **[Rapfi](https://github.com/imnwngr/rapfi)** — underlying analysis engine.
+- **[Gomoku Calculator](https://github.com/imnwngr/gomoku-calculator)** — position notation reference.
+
+The bundled engine assets originate from a previously packaged **customized Rapfi build**. Do not assume the current upstream HEAD exactly reproduces those binaries without verifying the original build revision. A source ZIP of this extension does **not** include the complete C++ engine source.
+
+---
+
+<div align="center">
+  <strong>Observe · Evaluate · Understand</strong><br />
+  <sub>Neutral Nexus is a read-only analysis companion, not a game-playing bot.</sub>
+  <br /><br />
+  <a href="#quick-start">↑ Back to quick start</a> · <a href="README.vi.md">Đọc bằng tiếng Việt</a>
+</div>
